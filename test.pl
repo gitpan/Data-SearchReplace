@@ -5,7 +5,7 @@
 
 use Test;
 use Storable qw(dclone);
-BEGIN { plan tests => 10 };
+BEGIN { plan tests => 11 };
 use Data::SearchReplace;
 ok(1); # If we made it this far, we're ok.
 
@@ -81,3 +81,8 @@ my @test10 = @{dclone(\@VAR)};
    splice(@test10, 1,0,bless {});
    Data::SearchReplace::sr({ SEARCH => 'sight', REPLACE => 'vision'}, \@test10);
 ok($test10[0]->{television}->{meaning}, 'long vision');
+
+# 11. test of the CODE function
+my @test11 = @{dclone(\@VAR)};
+   Data::SearchReplace::sr({ CODE => sub { uc($_[0]) } }, \@test11);
+ok($test11[0]->{television}->{tele}->[1], 'DISTANT');

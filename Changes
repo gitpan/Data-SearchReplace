@@ -1,5 +1,11 @@
 Revision history for Perl extension Data::SearchReplace.
 
+1.01  Sat May 30 12:13:54 2003
+	- added ability to parse using anonymous subroutines
+
+1.00  Fri May 30 02:15:35 2003
+        - updated for including in CPAN and added CVS lines
+
 0.01  Wed May 28 17:14:17 2003
 	- original version; created by h2xs 1.21 with options
 		-X -n SearchReplace

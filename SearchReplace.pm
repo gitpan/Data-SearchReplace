@@ -10,12 +10,12 @@ our @ISA = qw(Exporter);
 
 our @EXPORT_OK = ( 'sr' );
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 # CVS stuff
 our $date = '$Date: 2002/05/29 16:38:20 $';
 our $author = '$Author: steve $';
-our $version = '$Revision: 1.00 $';
+our $version = '$Revision: 1.01 $';
 
 sub new { bless $_[1] || {}, $_[0] }
 
@@ -25,27 +25,36 @@ sub sr {
     my $attrib = defined($_[1]) ? shift : {};
     my $var = shift;
 
-    # did they setup their vars in class?
-      $attrib->{SEARCH}  ||= $class->{SEARCH}  || '';
-      $attrib->{REPLACE} ||= $class->{REPLACE} || '';
-      $attrib->{REGEX}   ||= $class->{REGEX}   || '';
+    # what action are we taking?  
+    #  (input to this function overrides class values)
+    my $action = 'SEARCH';
+       $action = 'REGEX' if (defined $attrib->{REGEX} && 
+			      length($attrib->{REGEX}) );
+       $action = 'FUNCT' if (defined $attrib->{CODE}  &&
+			      length($attrib->{CODE})  );
 
+    # did they setup their vars in class?
+      $attrib->{$_} ||= $class->{$_} || ''
+		for (qw(SEARCH REPLACE REGEX CODE));
+	
     if (ref($var) eq 'HASH') {
        _hash($class, $attrib, $var);
     }elsif (ref($var) eq 'ARRAY') {
        _array($class, $attrib, $var);
     }elsif (ref($var) eq 'SCALAR') {
-	if (defined($attrib->{SEARCH}) && length($attrib->{SEARCH})) {
+	if ($action eq 'SEARCH') {
            $$var =~ s/$attrib->{SEARCH}/$attrib->{REPLACE}/g;
-	}elsif (defined($attrib->{REGEX})) {
+	}elsif ($action eq 'REGEX') {
 	   eval '$$var =~ '.$attrib->{REGEX}; 
 		warn $@ if $@;
+	}elsif ($action eq 'FUNCT') {
+	   $$var = $attrib->{CODE}->($$var);
 	}
     }else{
 	return; # something we can't handle
     }
 }
-                                                                                
+
 sub _hash {
     sr($_[0], $_[1], ref($_[2]->{$_}) ? $_[2]->{$_} : \$_[2]->{$_})
         for (keys %{$_[2]})
@@ -91,14 +100,21 @@ entries in complex data structures
 
   sr({ REGEX => 's/nice/great/gi' }, \$complex_var);
 
+  # you can even use a subroutine if you'd like
+  #  the input variable is the value and the return sets the new
+  #  value.
+
+  sr({ CODE => sub { uc($_[0]) } }, \$complex_var);
+
 =head1 ABSTRACT
 
 Data::SearchReplace - run a regex on all values within a complex 
 data structure.
 
-use Data::SearchReplace qw(sr);
-sr({SEARCH => 'find', REPLACE => 'replace'}, \@data);
-sr({REGEX => 's/find/replace/g'}, \%data);
+ use Data::SearchReplace qw(sr);
+ sr({SEARCH => 'find', REPLACE => 'replace'}, \@data);
+ sr({REGEX  => 's/find/replace/g'}, \%data);
+ sr({CODE   => sub {uc($_[0])} }, \@data);
 
 =head1 DESCRIPTION
 
