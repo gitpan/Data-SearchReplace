@@ -1,0 +1,6 @@
+Revision history for Perl extension Data::SearchReplace.
+
+0.01  Wed May 28 17:14:17 2003
+	- original version; created by h2xs 1.21 with options
+		-X -n SearchReplace
+
