@@ -5,7 +5,7 @@
 
 use Test;
 use Storable qw(dclone);
-BEGIN { plan tests => 11 };
+BEGIN { plan tests => 12 };
 use Data::SearchReplace;
 ok(1); # If we made it this far, we're ok.
 
@@ -86,3 +86,8 @@ ok($test10[0]->{television}->{meaning}, 'long vision');
 my @test11 = @{dclone(\@VAR)};
    Data::SearchReplace::sr({ CODE => sub { uc($_[0]) } }, \@test11);
 ok($test11[0]->{television}->{tele}->[1], 'DISTANT');
+
+# 12. counter test
+my %test12 = %{dclone(\%VAR)};
+my $count = $sr->sr(\%test12);
+ok($count == 3);

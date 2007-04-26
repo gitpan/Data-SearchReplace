@@ -1,4 +1,4 @@
-Data::SearchReplace version 1.01
+Data::SearchReplace version 1.02
 ================================
 
 Provides the ability to perform search and replace functions to
@@ -19,7 +19,7 @@ none.
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2003 by Stephen D. Wells.  All rights reserved.
+Copyright (C) 2003-2007 by Stephen D. Wells.  All rights reserved.
  
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -1,5 +1,9 @@
 Revision history for Perl extension Data::SearchReplace.
 
+1.02  Thu April 25 10:4138 2007
+	- added return value to sr - returns the number of matches
+		in your complex variable now.
+
 1.01  Sat May 30 12:13:54 2003
 	- added ability to parse using anonymous subroutines
 

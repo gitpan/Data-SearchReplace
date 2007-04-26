@@ -10,55 +10,64 @@ our @ISA = qw(Exporter);
 
 our @EXPORT_OK = ( 'sr' );
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 # CVS stuff
-our $date = '$Date: 2002/05/29 16:38:20 $';
+our $date = '$Date: 2007/04/26 09:37:11 $';
 our $author = '$Author: steve $';
-our $version = '$Revision: 1.01 $';
+our $version = '$Revision: 1.02 $';
 
 sub new { bless $_[1] || {}, $_[0] }
 
-sub sr {
-    my $class = _is_package($_[0]) ? shift : Data::SearchReplace->new();
+{
+  my $_counter = 0;
+  sub sr {
+      my $class = _is_package($_[0]) ? shift : Data::SearchReplace->new();
 
-    my $attrib = defined($_[1]) ? shift : {};
-    my $var = shift;
+      # we reset our counter if the caller doesn't come from us... 
+      # if you decide to override the private functions _array and _hash 
+      # in your own modules you might want to rethink this...
+      $_counter = 0 if ((caller())[0] ne 'Data::SearchReplace');
 
-    # what action are we taking?  
-    #  (input to this function overrides class values)
-    my $action = 'SEARCH';
-       $action = 'REGEX' if (defined $attrib->{REGEX} && 
-			      length($attrib->{REGEX}) );
-       $action = 'FUNCT' if (defined $attrib->{CODE}  &&
-			      length($attrib->{CODE})  );
+      my $attrib = defined($_[1]) ? shift : {};
+      my $var = shift;
 
-    # did they setup their vars in class?
-      $attrib->{$_} ||= $class->{$_} || ''
-		for (qw(SEARCH REPLACE REGEX CODE));
+      # what action are we taking?  
+      #  (input to this function overrides class values)
+      my $action = 'SEARCH';
+         $action = 'REGEX' if (defined $attrib->{REGEX} && 
+			       length($attrib->{REGEX}) );
+         $action = 'FUNCT' if (defined $attrib->{CODE}  &&
+			       length($attrib->{CODE})  );
+
+      # did they setup their vars in class?
+        $attrib->{$_} ||= $class->{$_} || ''
+		  for (qw(SEARCH REPLACE REGEX CODE));
 	
-    if (ref($var) eq 'HASH') {
-       _hash($class, $attrib, $var);
-    }elsif (ref($var) eq 'ARRAY') {
-       _array($class, $attrib, $var);
-    }elsif (ref($var) eq 'SCALAR') {
-	if ($action eq 'SEARCH') {
-           $$var =~ s/$attrib->{SEARCH}/$attrib->{REPLACE}/g;
-	}elsif ($action eq 'REGEX') {
-	   eval '$$var =~ '.$attrib->{REGEX}; 
-		warn $@ if $@;
-	}elsif ($action eq 'FUNCT') {
-	   $$var = $attrib->{CODE}->($$var);
-	}
-    }else{
-	return; # something we can't handle
-    }
+      if (ref($var) eq 'HASH') {
+         _hash($class, $attrib, $var);
+      }elsif (ref($var) eq 'ARRAY') {
+         _array($class, $attrib, $var);
+      }elsif (ref($var) eq 'SCALAR') {
+	 if ($action eq 'SEARCH') {
+            ++$_counter if ($$var =~ s/$attrib->{SEARCH}/$attrib->{REPLACE}/g);
+	 }elsif ($action eq 'REGEX') {
+	    eval '++$_counter if ($$var =~ '.$attrib->{REGEX}.')'; 
+		 warn $@ if $@;
+	 }elsif ($action eq 'FUNCT') {
+	    my $oldvar = $var;
+	    $$var = $attrib->{CODE}->($$oldvar);
+	    ++$_counter unless $$oldvar eq $$var;
+	 }
+      }elsif (ref($var)){
+	 return; # something we can't handle
+      }
+
+  return $_counter;
+  }
 }
 
-sub _hash {
-    sr($_[0], $_[1], ref($_[2]->{$_}) ? $_[2]->{$_} : \$_[2]->{$_})
-        for (keys %{$_[2]})
-}
+sub _hash { sr($_[0], $_[1], ref($_[2]->{$_}) ? $_[2]->{$_} : \$_[2]->{$_}) for (keys %{$_[2]}) }
                                                                                 
 sub _array { sr($_[0], $_[1], ref($_) ? $_ : \$_) for (@{$_[2]}) }
 
@@ -106,6 +115,11 @@ entries in complex data structures
 
   sr({ CODE => sub { uc($_[0]) } }, \$complex_var);
 
+  # now sr has a return value for the number of variables it changed
+  my $ret = sr({ SEARCH => 'searching', REPLACE => 'replacing'}, \$complex_var);
+
+  # returns the number of variables it matched
+
 =head1 ABSTRACT
 
 Data::SearchReplace - run a regex on all values within a complex 
@@ -115,6 +129,7 @@ data structure.
  sr({SEARCH => 'find', REPLACE => 'replace'}, \@data);
  sr({REGEX  => 's/find/replace/g'}, \%data);
  sr({CODE   => sub {uc($_[0])} }, \@data);
+ my $matched = sr({REGEX  => 's/find/replace/g'}, \%data);
 
 =head1 DESCRIPTION
 
@@ -133,10 +148,12 @@ a complex data structure.
           test    => 'this should change too' );
                                                                                 
  # we'll capitalize the first character and strip off any extra words
- sr({ REGEX => 's/(\w+).*/ucfirst($1)/e' }, \%VAR);
- print "Hey my program ", $VAR{example}->{dessert}->{ice_cream}, "!\n";
- print $VAR{test}, " should work for you too!\n";
+ my $matched = sr({ REGEX => 's/(\w+).*/ucfirst($1)/e' }, \%VAR);
 
+ print "Hey my program ", $VAR{example}->{dessert}->{ice_cream}, "!\n",
+       $VAR{test}, " should work for you too!\n",
+       "btw it altered $matched variables in this example.\n";
+ 
 =head2 EXPORT
 
 sr - however none by default
@@ -163,7 +180,7 @@ Stephen D. Wells, E<lt>wells@cedarnet.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2003 (C) by Stephen D. Wells.  All rights reserved.
+Copyright 2003-2007 (C) by Stephen D. Wells.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
